@@ -627,9 +627,12 @@
     
     [self.request setHTTPMethod:@"POST"];
     
+	NSString *filename = [key stringByReplacingOccurrencesOfString:@"[" withString:@""];
+	filename = [filename stringByReplacingOccurrencesOfString:@"]" withString:@""];
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
                           data, @"data",
                           key, @"name",
+                          filename,@"filename",
                           mimeType, @"mimetype",     
                           nil];
     
@@ -670,7 +673,7 @@
         
         NSString *thisFieldString = [NSString stringWithFormat:
                                      @"--%@\r\nContent-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n",
-                                     boundary, [key urlEncodedString], [obj urlEncodedString]];
+                                     boundary, key, obj];
         
         [body appendData:[thisFieldString dataUsingEncoding:[self stringEncoding]]];
     }];        
@@ -696,18 +699,19 @@
                                      @"--%@\r\nContent-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\nContent-Type: %@\r\nContent-Transfer-Encoding: binary\r\n\r\n",
                                      boundary, 
                                      [thisDataObject objectForKey:@"name"], 
-                                     [thisDataObject objectForKey:@"name"], 
+                                     [thisDataObject objectForKey:@"filename"], 
                                      [thisDataObject objectForKey:@"mimetype"]];
         
         [body appendData:[thisFieldString dataUsingEncoding:[self stringEncoding]]];         
         [body appendData:[thisDataObject objectForKey:@"data"]];
+        [body appendData:[@"\r\n" dataUsingEncoding:self.stringEncoding]];
     }];
     
     if (postLength >= 1)
         [self.request setValue:[NSString stringWithFormat:@"%lu", postLength] forHTTPHeaderField:@"content-length"];
     
-    [body appendData: [[NSString stringWithFormat:@"\r\n--%@--\r\n", boundary] dataUsingEncoding:self.stringEncoding]];
-    
+    [body appendData: [[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:self.stringEncoding]];
+
     NSString *charset = (__bridge NSString *)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(self.stringEncoding));
     
     if(([self.filesToBePosted count] > 0) || ([self.dataToBePosted count] > 0)) {
